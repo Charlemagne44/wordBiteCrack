@@ -99,6 +99,39 @@ func (g *Game) HorizontalxHorizontal(chunk string, remainingHorizontalChunks, re
 	}
 }
 
+func (g *Game) VerticalxVertical(chunk string, remainingHorizontalChunks, remainingVerticalChunks,
+	remainingSingleChunks []string, chunk_orientation rune) {
+
+	for _, vert_chunk := range remainingVerticalChunks {
+
+		// insert chunk before and check validity
+		new_word := vert_chunk + chunk
+		// append a valid scoring word to the games valid words
+		if g.Trie.Search(new_word) && len(new_word) >= 3 && !contains(g.ValidVerticalWords, new_word) {
+			g.ValidHorizontalWords = append(g.ValidVerticalWords, new_word)
+		}
+		// is its valid, and more could be constructed -> recurse
+		if g.Trie.ValidPath(new_word) {
+			// create a new limited list of vertical chunks excluding the one used and recurse
+			g.Backtrack(new_word, remainingHorizontalChunks,
+				remove(remainingVerticalChunks, vert_chunk), remainingSingleChunks, 'v')
+		}
+
+		// insert chunk after and check validity
+		new_word = chunk + vert_chunk
+		// append a valid scoring word to the games valid words
+		if g.Trie.Search(new_word) && len(new_word) >= 3 && !contains(g.ValidVerticalWords, new_word) {
+			g.ValidVerticalWords = append(g.ValidVerticalWords, new_word)
+		}
+		// if its valid, and more could be constructed -> recurse
+		if g.Trie.ValidPath(new_word) {
+			// create a new limited list of horizontal chunks excluding the one used and recurse
+			g.Backtrack(new_word, remainingHorizontalChunks,
+				remove(remainingVerticalChunks, vert_chunk), remainingSingleChunks, 'v')
+		}
+	}
+}
+
 func (g *Game) HorizontalxVertical(chunk string, remainingHorizontalChunks, remainingVerticalChunks,
 	remainingSingleChunks []string, chunk_orientation rune) {
 
@@ -232,7 +265,9 @@ func (g *Game) Backtrack(chunk string, remainingHorizontalChunks, remainingVerti
 
 	} else if chunk_orientation == 'v' {
 
-		// try all vertical chunks before the beginning and the end
+		// try all vertical chunks before the beginning and the end4
+		g.VerticalxVertical(chunk, remainingHorizontalChunks, remainingVerticalChunks,
+			remainingSingleChunks, 'v')
 
 		// try all horizontal chunks before and after each letter
 
