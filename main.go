@@ -159,7 +159,54 @@ func (g *Game) HorizontalxVertical(chunk string, remainingHorizontalChunks, rema
 			}
 		}
 	}
+}
 
+func (g *Game) HorizontalxSingle(chunk string, remainingHorizontalChunks, remainingVerticalChunks,
+	remainingSingleChunks []string, chunk_orientation rune) {
+
+	// try each single before and after the horizontal chunk (horizontal result)
+	for _, single := range remainingSingleChunks {
+		new_word := single + chunk
+
+		if g.Trie.Search(new_word) && len(new_word) >= 3 && !contains(g.ValidHorizontalWords, new_word) {
+			g.ValidHorizontalWords = append(g.ValidHorizontalWords, new_word)
+		}
+
+		if g.Trie.ValidPath(new_word) {
+			g.Backtrack(new_word, remainingHorizontalChunks, remainingVerticalChunks,
+				remove(remainingSingleChunks, single), 'h')
+		}
+
+		new_word = chunk + single
+
+		if g.Trie.Search(new_word) && len(new_word) >= 3 && !contains(g.ValidHorizontalWords, new_word) {
+			g.ValidHorizontalWords = append(g.ValidHorizontalWords, new_word)
+		}
+
+		if g.Trie.ValidPath(new_word) {
+			g.Backtrack(new_word, remainingHorizontalChunks, remainingVerticalChunks,
+				remove(remainingSingleChunks, single), 'h')
+		}
+	}
+
+	// try each single before and after each letter of the horizontal chunk (vertical result)
+	for _, single := range remainingSingleChunks {
+		for _, letter := range chunk {
+			new_word := single + string(letter)
+
+			if g.Trie.ValidPath(new_word) {
+				g.Backtrack(new_word, remainingHorizontalChunks, remainingVerticalChunks,
+					remove(remainingSingleChunks, single), 'v')
+			}
+
+			new_word = string(letter) + single
+
+			if g.Trie.ValidPath(new_word) {
+				g.Backtrack(new_word, remainingHorizontalChunks, remainingVerticalChunks,
+					remove(remainingSingleChunks, single), 'v')
+			}
+		}
+	}
 }
 
 func (g *Game) Backtrack(chunk string, remainingHorizontalChunks, remainingVerticalChunks,
@@ -179,15 +226,19 @@ func (g *Game) Backtrack(chunk string, remainingHorizontalChunks, remainingVerti
 		g.HorizontalxVertical(chunk, remainingHorizontalChunks, remainingVerticalChunks,
 			remainingSingleChunks, chunk_orientation)
 
-		// try all single chunks before and after chunk, and before and after each letter
+		// try all single chunks before and after each chunk, and before and after each letter
+		g.HorizontalxSingle(chunk, remainingHorizontalChunks, remainingVerticalChunks,
+			remainingSingleChunks, chunk_orientation)
 
-	} else { // if word is vertical
+	} else if chunk_orientation == 'v' {
 
 		// try all vertical chunks before the beginning and the end
 
 		// try all horizontal chunks before and after each letter
 
 		// try all single chunks before and after chunk, and before and after each letter
+
+	} else { //  single chunk
 
 	}
 
@@ -259,6 +310,11 @@ func main() {
 	for _, vertical_chunk := range game.VerticalChunks {
 		game.Backtrack(vertical_chunk, remainingHorizontalChunks,
 			remove(game.VerticalChunks, vertical_chunk), remainingSingleChunks, 'v')
+	}
+
+	for _, single_chunk := range game.SingleChunks {
+		game.Backtrack(single_chunk, remainingHorizontalChunks,
+			remainingVerticalChunks, remove(remainingSingleChunks, single_chunk), 's')
 	}
 
 	fmt.Printf("Valid horizontal words: %v\n", game.ValidHorizontalWords)
