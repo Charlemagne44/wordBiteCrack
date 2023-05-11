@@ -12,11 +12,12 @@ import (
 var f embed.FS
 
 type Game struct {
-	Trie             trie.Trie
-	HorizontalChunks []string
-	VerticalChunks   []string
-	SingleChunks     []string
-	ValidWords       []string
+	Trie                 trie.Trie
+	HorizontalChunks     []string
+	VerticalChunks       []string
+	SingleChunks         []string
+	ValidHorizontalWords []string
+	ValidVerticalWords   []string
 }
 
 func (g *Game) LoadTestWords() {
@@ -65,42 +66,118 @@ func (g *Game) LoadWords() {
 	}
 }
 
+func (g *Game) HorizontalxHorizontal(chunk string, remainingHorizontalChunks, remainingVerticalChunks,
+	remainingSingleChunks []string, chunk_orientation rune) {
+
+	for _, horiz_chunk := range remainingHorizontalChunks {
+
+		// insert chunk before and check validity
+		new_word := horiz_chunk + chunk
+		// append a valid scoring word to the games valid words
+		if g.Trie.Search(new_word) && len(new_word) >= 3 && !contains(g.ValidHorizontalWords, new_word) {
+			g.ValidHorizontalWords = append(g.ValidHorizontalWords, new_word)
+		}
+		// is its valid, and more could be constructed -> recurse
+		if g.Trie.ValidPath(new_word) {
+			// create a new limited list of horizontal chunks excluding the one used and recurse
+			g.Backtrack(new_word, remove(remainingHorizontalChunks, horiz_chunk),
+				remainingVerticalChunks, remainingSingleChunks, 'h')
+		}
+
+		// insert chunk after and check validity
+		new_word = chunk + horiz_chunk
+		// append a valid scoring word to the games valid words
+		if g.Trie.Search(new_word) && len(new_word) >= 3 && !contains(g.ValidHorizontalWords, new_word) {
+			g.ValidHorizontalWords = append(g.ValidHorizontalWords, new_word)
+		}
+		// if its valid, and more could be constructed -> recurse
+		if g.Trie.ValidPath(new_word) {
+			// create a new limited list of horizontal chunks excluding the one used and recurse
+			g.Backtrack(new_word, remove(remainingHorizontalChunks, horiz_chunk),
+				remainingVerticalChunks, remainingSingleChunks, 'h')
+		}
+	}
+}
+
+func (g *Game) HorizontalxVertical(chunk string, remainingHorizontalChunks, remainingVerticalChunks,
+	remainingSingleChunks []string, chunk_orientation rune) {
+
+	// for each letter in the horizontal word, try each vertical chunk above and below each letter (result vertical)
+	for _, letter := range chunk {
+		for _, vert_chunk := range remainingVerticalChunks {
+			// insert before letter (vertically)
+			new_word := vert_chunk + string(letter)
+
+			if g.Trie.Search(new_word) && len(new_word) >= 3 && !contains(g.ValidVerticalWords, new_word) {
+				g.ValidVerticalWords = append(g.ValidVerticalWords, new_word)
+			}
+
+			if g.Trie.ValidPath(new_word) {
+				g.Backtrack(new_word, remainingHorizontalChunks, remove(remainingVerticalChunks, vert_chunk),
+					remainingSingleChunks, 'v')
+			}
+
+			// insert after letter (vertically)
+			new_word = string(letter) + vert_chunk
+
+			if g.Trie.Search(new_word) && len(new_word) >= 3 && !contains(g.ValidVerticalWords, new_word) {
+				g.ValidVerticalWords = append(g.ValidVerticalWords, new_word)
+			}
+
+			if g.Trie.ValidPath(new_word) {
+				g.Backtrack(new_word, remainingHorizontalChunks, remove(remainingVerticalChunks, vert_chunk),
+					remainingSingleChunks, 'v')
+			}
+		}
+	}
+
+	// for each letter in each vertical chunk, try it before and after the horizontal chunk (result horizontal)
+	for _, vert_chunk := range remainingVerticalChunks {
+		for _, letter := range vert_chunk {
+			// insert letter before chunk
+			new_word := string(letter) + chunk
+
+			if g.Trie.Search(new_word) && len(new_word) >= 3 && !contains(g.ValidHorizontalWords, new_word) {
+				g.ValidHorizontalWords = append(g.ValidHorizontalWords, new_word)
+			}
+
+			if g.Trie.ValidPath(new_word) {
+				g.Backtrack(new_word, remainingHorizontalChunks, remove(remainingVerticalChunks, vert_chunk),
+					remainingSingleChunks, 'h')
+			}
+
+			// insert letter after chunk
+			new_word = vert_chunk + string(letter)
+
+			if g.Trie.Search(new_word) && len(new_word) >= 3 && !contains(g.ValidHorizontalWords, new_word) {
+				g.ValidHorizontalWords = append(g.ValidHorizontalWords, new_word)
+			}
+
+			if g.Trie.ValidPath(new_word) {
+				g.Backtrack(new_word, remainingHorizontalChunks, remove(remainingVerticalChunks, vert_chunk),
+					remainingSingleChunks, 'h')
+			}
+		}
+	}
+
+}
+
 func (g *Game) Backtrack(chunk string, remainingHorizontalChunks, remainingVerticalChunks,
 	remainingSingleChunks []string, chunk_orientation rune) {
 
 	// if word is horizontal
 	if chunk_orientation == 'h' {
+		// as there are several unique permutations for horizontal x vertical x single they all will contain
+		// their own functions as they are all quite long, and we want to avoid an untestable single service
+		// function
+
 		// try all horizontal chunks before the beginning and end
-		for _, horiz_chunk := range g.HorizontalChunks {
-
-			// insert chunk before and check validity
-			new_word := horiz_chunk + chunk
-			// append a valid scoring word to the games valid words
-			if g.Trie.Search(new_word) && len(new_word) >= 3 {
-				g.ValidWords = append(g.ValidWords, new_word)
-			}
-			// is its valid, and more could be constructed -> recurse
-			if g.Trie.ValidPath(new_word) {
-				// create a new limited list of horizontal chunks excluding the one used and recurse
-				g.Backtrack(new_word, remove(remainingHorizontalChunks, horiz_chunk),
-					remainingVerticalChunks, remainingSingleChunks, 'h')
-			}
-
-			// insert chunk after and check validity
-			new_word = chunk + horiz_chunk
-			// append a valid scoring word to the games valid words
-			if g.Trie.Search(new_word) && len(new_word) >= 3 {
-				g.ValidWords = append(g.ValidWords, new_word)
-			}
-			// if its valid, and more could be constructed -> recurse
-			if g.Trie.ValidPath(new_word) {
-				// create a new limited list of horizontal chunks excluding the one used and recurse
-				g.Backtrack(new_word, remove(remainingHorizontalChunks, horiz_chunk),
-					remainingVerticalChunks, remainingSingleChunks, 'h')
-			}
-		}
+		g.HorizontalxHorizontal(chunk, remainingHorizontalChunks, remainingVerticalChunks,
+			remainingSingleChunks, chunk_orientation)
 
 		// try all vertical chunks before and after each letter
+		g.HorizontalxVertical(chunk, remainingHorizontalChunks, remainingVerticalChunks,
+			remainingSingleChunks, chunk_orientation)
 
 		// try all single chunks before and after chunk, and before and after each letter
 
@@ -125,6 +202,15 @@ func remove(s []string, r string) []string {
 	return s
 }
 
+func contains(slice []string, word string) bool {
+	for _, element := range slice {
+		if element == word {
+			return true
+		}
+	}
+	return false
+}
+
 func main() {
 	// load in the english dict into a trie
 	data, _ := f.ReadFile("resources/scrabble.json")
@@ -144,11 +230,12 @@ func main() {
 
 	// create game object and load in the english dict trie
 	game := Game{
-		Trie:             *trie,
-		VerticalChunks:   make([]string, 0),
-		HorizontalChunks: make([]string, 0),
-		SingleChunks:     make([]string, 0),
-		ValidWords:       make([]string, 0),
+		Trie:                 *trie,
+		VerticalChunks:       make([]string, 0),
+		HorizontalChunks:     make([]string, 0),
+		SingleChunks:         make([]string, 0),
+		ValidHorizontalWords: make([]string, 0),
+		ValidVerticalWords:   make([]string, 0),
 	}
 
 	// gathers user input for vertical and horizontal chunks and load them into the game object
@@ -174,7 +261,8 @@ func main() {
 			remove(game.VerticalChunks, vertical_chunk), remainingSingleChunks, 'v')
 	}
 
-	fmt.Printf("Valid words: %v\n", game.ValidWords)
+	fmt.Printf("Valid horizontal words: %v\n", game.ValidHorizontalWords)
+	fmt.Printf("Valid vertical words: %v\n", game.ValidVerticalWords)
 
 	// fmt.Println(trie.Search("sese"))
 	// fmt.Println(trie.ValidPath("ashen"))
