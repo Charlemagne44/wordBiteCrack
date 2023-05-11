@@ -39,3 +39,15 @@ func (t *Trie) Search(word string) bool {
 	}
 	return current.IsEnd
 }
+
+func (t *Trie) ValidPath(word string) bool {
+	current := t.Root
+	for i := 0; i < len(word); i++ {
+		_, exists := current.Chars[string(word[i])]
+		if !exists {
+			return false
+		}
+		current = current.Chars[string(word[i])]
+	}
+	return true
+}
