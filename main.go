@@ -242,6 +242,54 @@ func (g *Game) VerticalxVertical(chunk string, remainingHorizontalChunks, remain
 	}
 }
 
+func (g *Game) VerticalxSingle(chunk string, remainingHorizontalChunks, remainingVerticalChunks,
+	remainingSingleChunks []string, chunk_orientation rune) {
+
+	// try each single before and after the vertical chunk (vertical result)
+	for _, single := range remainingSingleChunks {
+		new_word := single + chunk
+
+		if g.Trie.Search(new_word) && len(new_word) >= 3 && !contains(g.ValidVerticalWords, new_word) {
+			g.ValidVerticalWords = append(g.ValidVerticalWords, new_word)
+		}
+
+		if g.Trie.ValidPath(new_word) {
+			g.Backtrack(new_word, remainingHorizontalChunks, remainingVerticalChunks,
+				remove(remainingSingleChunks, single), 'v')
+		}
+
+		new_word = chunk + single
+
+		if g.Trie.Search(new_word) && len(new_word) >= 3 && !contains(g.ValidVerticalWords, new_word) {
+			g.ValidVerticalWords = append(g.ValidVerticalWords, new_word)
+		}
+
+		if g.Trie.ValidPath(new_word) {
+			g.Backtrack(new_word, remainingHorizontalChunks, remainingVerticalChunks,
+				remove(remainingSingleChunks, single), 'v')
+		}
+	}
+
+	// try each single before and after each letter of the vertical chunk (horizontal result)
+	for _, single := range remainingSingleChunks {
+		for _, letter := range chunk {
+			new_word := single + string(letter)
+
+			if g.Trie.ValidPath(new_word) {
+				g.Backtrack(new_word, remainingHorizontalChunks, remainingVerticalChunks,
+					remove(remainingSingleChunks, single), 'h')
+			}
+
+			new_word = string(letter) + single
+
+			if g.Trie.ValidPath(new_word) {
+				g.Backtrack(new_word, remainingHorizontalChunks, remainingVerticalChunks,
+					remove(remainingSingleChunks, single), 'h')
+			}
+		}
+	}
+}
+
 func (g *Game) Backtrack(chunk string, remainingHorizontalChunks, remainingVerticalChunks,
 	remainingSingleChunks []string, chunk_orientation rune) {
 
@@ -272,6 +320,8 @@ func (g *Game) Backtrack(chunk string, remainingHorizontalChunks, remainingVerti
 		// try all horizontal chunks before and after each letter
 
 		// try all single chunks before and after chunk, and before and after each letter
+		g.VerticalxSingle(chunk, remainingHorizontalChunks, remainingVerticalChunks,
+			remainingSingleChunks, chunk_orientation)
 
 	}
 }
