@@ -99,39 +99,6 @@ func (g *Game) HorizontalxHorizontal(chunk string, remainingHorizontalChunks, re
 	}
 }
 
-func (g *Game) VerticalxVertical(chunk string, remainingHorizontalChunks, remainingVerticalChunks,
-	remainingSingleChunks []string, chunk_orientation rune) {
-
-	for _, vert_chunk := range remainingVerticalChunks {
-
-		// insert chunk before and check validity
-		new_word := vert_chunk + chunk
-		// append a valid scoring word to the games valid words
-		if g.Trie.Search(new_word) && len(new_word) >= 3 && !contains(g.ValidVerticalWords, new_word) {
-			g.ValidHorizontalWords = append(g.ValidVerticalWords, new_word)
-		}
-		// is its valid, and more could be constructed -> recurse
-		if g.Trie.ValidPath(new_word) {
-			// create a new limited list of vertical chunks excluding the one used and recurse
-			g.Backtrack(new_word, remainingHorizontalChunks,
-				remove(remainingVerticalChunks, vert_chunk), remainingSingleChunks, 'v')
-		}
-
-		// insert chunk after and check validity
-		new_word = chunk + vert_chunk
-		// append a valid scoring word to the games valid words
-		if g.Trie.Search(new_word) && len(new_word) >= 3 && !contains(g.ValidVerticalWords, new_word) {
-			g.ValidVerticalWords = append(g.ValidVerticalWords, new_word)
-		}
-		// if its valid, and more could be constructed -> recurse
-		if g.Trie.ValidPath(new_word) {
-			// create a new limited list of horizontal chunks excluding the one used and recurse
-			g.Backtrack(new_word, remainingHorizontalChunks,
-				remove(remainingVerticalChunks, vert_chunk), remainingSingleChunks, 'v')
-		}
-	}
-}
-
 func (g *Game) HorizontalxVertical(chunk string, remainingHorizontalChunks, remainingVerticalChunks,
 	remainingSingleChunks []string, chunk_orientation rune) {
 
@@ -242,15 +209,48 @@ func (g *Game) HorizontalxSingle(chunk string, remainingHorizontalChunks, remain
 	}
 }
 
+func (g *Game) VerticalxVertical(chunk string, remainingHorizontalChunks, remainingVerticalChunks,
+	remainingSingleChunks []string, chunk_orientation rune) {
+
+	for _, vert_chunk := range remainingVerticalChunks {
+
+		// insert chunk before and check validity
+		new_word := vert_chunk + chunk
+		// append a valid scoring word to the games valid words
+		if g.Trie.Search(new_word) && len(new_word) >= 3 && !contains(g.ValidVerticalWords, new_word) {
+			g.ValidVerticalWords = append(g.ValidHorizontalWords, new_word)
+		}
+		// is its valid, and more could be constructed -> recurse
+		if g.Trie.ValidPath(new_word) {
+			// create a new limited list of vertical chunks excluding the one used and recurse
+			g.Backtrack(new_word, remainingHorizontalChunks,
+				remove(remainingVerticalChunks, vert_chunk), remainingSingleChunks, 'v')
+		}
+
+		// insert chunk after and check validity
+		new_word = chunk + vert_chunk
+		// append a valid scoring word to the games valid words
+		if g.Trie.Search(new_word) && len(new_word) >= 3 && !contains(g.ValidVerticalWords, new_word) {
+			g.ValidVerticalWords = append(g.ValidVerticalWords, new_word)
+		}
+		// if its valid, and more could be constructed -> recurse
+		if g.Trie.ValidPath(new_word) {
+			// create a new limited list of vertical chunks excluding the one used and recurse
+			g.Backtrack(new_word, remainingHorizontalChunks,
+				remove(remainingVerticalChunks, vert_chunk), remainingSingleChunks, 'v')
+		}
+	}
+}
+
 func (g *Game) Backtrack(chunk string, remainingHorizontalChunks, remainingVerticalChunks,
 	remainingSingleChunks []string, chunk_orientation rune) {
 
+	// as there are several unique permutations for horizontal x vertical x single they all will
+	// contain their own functions as they are all quite long, and we want to avoid an untestable
+	// single service function
+
 	// if word is horizontal
 	if chunk_orientation == 'h' {
-		// as there are several unique permutations for horizontal x vertical x single they all will contain
-		// their own functions as they are all quite long, and we want to avoid an untestable single service
-		// function
-
 		// try all horizontal chunks before the beginning and end
 		g.HorizontalxHorizontal(chunk, remainingHorizontalChunks, remainingVerticalChunks,
 			remainingSingleChunks, chunk_orientation)
@@ -265,18 +265,15 @@ func (g *Game) Backtrack(chunk string, remainingHorizontalChunks, remainingVerti
 
 	} else if chunk_orientation == 'v' {
 
-		// try all vertical chunks before the beginning and the end4
+		// try all vertical chunks before the beginning and the end
 		g.VerticalxVertical(chunk, remainingHorizontalChunks, remainingVerticalChunks,
-			remainingSingleChunks, 'v')
+			remainingSingleChunks, chunk_orientation)
 
 		// try all horizontal chunks before and after each letter
 
 		// try all single chunks before and after chunk, and before and after each letter
 
-	} else { //  single chunk
-
 	}
-
 }
 
 func remove(s []string, r string) []string {
